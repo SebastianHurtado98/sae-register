@@ -1,5 +1,6 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 
@@ -48,17 +49,49 @@ export default function EventList({ email }: { email: string }) {
     fetchGuests()
   }, [email])
 
+  const handleRegister = (eventId: number) => {
+    console.log(`Registrándose en el evento con ID: ${eventId}`)
+  }
+
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime)
+    return date.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',      
+    })
+  }
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Eventos:</h2>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">Eventos:</h2>
       {events.length === 0 ? (
-        <p>No hay eventos disponibles.</p>
+        <p className="text-center">No hay eventos disponibles.</p>
       ) : (
-        <ul>
-            {events.map(event => (
-                <li key={event.id}>
-                {event.name} - {event.date_hour}
-                </li>
+        <ul className="space-y-6">
+          {events
+            .filter(item => item.register_open)
+            .map(event => (
+              <li key={event.id} className="border p-6 rounded-lg shadow-lg w-full">
+                <div className="flex flex-col space-y-4">
+                    <span className="text-lg font-semibold">{event.name}</span>
+                    <div className="flex justify-between">
+                        <span><strong>Tipo:</strong> {event.event_type}</span>
+                        <span><strong>Lugar:</strong> {event.place}</span>
+                    </div>
+                    <span><strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}</span>                   
+                </div>
+                <div className="mt-4 text-center">
+                  <Button 
+                    className="bg-blue-500 text-white px-6 py-3 rounded-md" 
+                    onClick={() => handleRegister(event.id)}
+                  >
+                    Registrarse
+                  </Button>
+                </div>
+              </li>
             ))}
         </ul>
       )}
