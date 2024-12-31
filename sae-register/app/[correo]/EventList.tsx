@@ -15,6 +15,7 @@ type Event = {
 
 type EventGuest = {
     id: string
+    registered: boolean
     event?: Event[]
 }
 
@@ -22,13 +23,12 @@ export default function EventList({ email }: { email: string }) {
   const [events, setEvents] = useState<Event[]>([])
 
   useEffect(() => {
-    async function fetchGuests() {
-      console.log("Fetching guests")
-
+    async function fetchGuests() {      
       const { data, error, count } = await supabase
         .from('event_guest')
         .select(
             `id,
+            registered,
             event:event_id (*)`,            
             { count: 'exact' })
         .eq('email', email)     
@@ -40,8 +40,7 @@ export default function EventList({ email }: { email: string }) {
     
       if (data && count !== null) {
         console.log("Raw data:", data);
-        const mappedEvents = data.map(item => item.event).flat();
-        console.log("Mapped events:", mappedEvents);
+        const mappedEvents = data.map(item => item.event).flat();        
         setEvents(mappedEvents);
       }
     }
@@ -49,8 +48,21 @@ export default function EventList({ email }: { email: string }) {
     fetchGuests()
   }, [email])
 
-  const handleRegister = (eventId: number) => {
-    console.log(`Registrándose en el evento con ID: ${eventId}`)
+  const handleRegister = async (eventId: number) => {
+    const { data, error } = await supabase
+      .from('event_guest')
+      .update({'registered': true})
+      .eq('email', email)
+      .eq('event_id', eventId)
+      .select()
+
+    if (error) {
+      console.error('Error updating guest:', error)
+      return
+    }
+    if (data) {
+      console.log("Data:", data);      
+    }
   }
 
   const formatDateTime = (dateTime: string) => {

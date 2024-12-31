@@ -12,8 +12,6 @@ export default function Home() {
   const handleVerInvitaciones = () => {
     if (email) {
       router.push(`/${encodeURIComponent(email)}`)
-    } else {
-      console.log('Por favor, ingresa un correo electrónico')
     }
   }
 
