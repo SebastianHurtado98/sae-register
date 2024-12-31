@@ -11,12 +11,7 @@ type Event = {
     date_hour: string
     place: string
     register_open: boolean
-}
-
-type EventGuest = {
-    id: string
     registered: boolean
-    event?: Event[]
 }
 
 export default function EventList({ email }: { email: string }) {
@@ -40,7 +35,12 @@ export default function EventList({ email }: { email: string }) {
     
       if (data && count !== null) {
         console.log("Raw data:", data);
-        const mappedEvents = data.map(item => item.event).flat();        
+        const mappedEvents = data
+        .map(item => ({
+          ...item.event, 
+          registered: item.registered
+        }))
+        .flat()        
         setEvents(mappedEvents);
       }
     }
@@ -61,7 +61,15 @@ export default function EventList({ email }: { email: string }) {
       return
     }
     if (data) {
-      console.log("Data:", data);      
+      console.log("Data:", data);
+      
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...event, registered: true }
+            : event
+        )
+      )
     }
   }
 
@@ -97,10 +105,15 @@ export default function EventList({ email }: { email: string }) {
                 </div>
                 <div className="mt-4 text-center">
                   <Button 
-                    className="bg-blue-500 text-white px-6 py-3 rounded-md" 
+                    className={`px-6 py-3 rounded-md ${
+                      event.registered 
+                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                        : 'bg-blue-500 text-white'
+                    }`}
                     onClick={() => handleRegister(event.id)}
+                    disabled={event.registered} 
                   >
-                    Registrarse
+                    {event.registered ? 'Registrado' : 'Registrarse'}
                   </Button>
                 </div>
               </li>
