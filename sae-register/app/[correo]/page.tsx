@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation'
 import EventList from './EventList'
+import { use } from 'react'
 
-export default async function InvitacionesPage({ params }: { params: { correo: string } }) {
-    const param = (await params)
+export default function InvitacionesPage({ params }: { params: Promise<{ correo: string }> }) {
+    const resolvedParams = use(params)
 
-    const decodedCorreo = decodeURIComponent(param.correo)
+    const decodedCorreo = decodeURIComponent(resolvedParams.correo)
       
     // Validación simple de correo electrónico
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
