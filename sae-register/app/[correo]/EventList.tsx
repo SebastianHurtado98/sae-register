@@ -138,8 +138,9 @@ export default function EventList({ email }: { email: string }) {
                   <Button
                     style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
                     className="px-4 py-2 rounded-md"
+                    disabled={event.registered}
                   >
-                    Registrarse en Zoom
+                    {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
                   </Button>
                 </a>
               ) : (
