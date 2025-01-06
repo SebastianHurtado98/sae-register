@@ -16,6 +16,7 @@ type Event = {
 
 export default function EventList({ email }: { email: string }) {
   const [events, setEvents] = useState<Event[]>([])
+  const [guestName, setGuestName] = useState<string>('')
 
   useEffect(() => {
     async function fetchGuests() {      
@@ -23,6 +24,9 @@ export default function EventList({ email }: { email: string }) {
         .from('event_guest')
         .select(
             `id,
+            is_user,
+            name,
+            executive:executive_id (*),
             registered,
             event:event_id (*)`,            
             { count: 'exact' })
@@ -35,12 +39,26 @@ export default function EventList({ email }: { email: string }) {
     
       if (data && count !== null) {
         console.log("Raw data:", data);
+
+        // Set the guest name based on the first matching criteria
+        //@ts-expect-error type check
+        const guest = data.find(item => item.event.register_open);
+        if (guest) {
+          if (guest.is_user && guest.executive) {
+            //@ts-expect-error type check
+            setGuestName(`${guest.executive.name} ${guest.executive.last_name}`);
+          } else {
+            setGuestName(guest.name);
+          }
+        }
+
         const mappedEvents = data
         .map(item => ({
           ...item.event, 
           registered: item.registered
         }))
-        .flat()        
+        .flat()      
+        .sort((a, b) => new Date(a.date_hour).getTime() - new Date(b.date_hour).getTime()); // Ordenar por fecha  
         setEvents(mappedEvents);
       }
     }
@@ -86,7 +104,9 @@ export default function EventList({ email }: { email: string }) {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-center">Eventos:</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">{guestName || 'Nombre no disponible'}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">{email}</h2>
+      <h3 className="text-2xl font-bold mb-6 text-center">Por favor registrarse en el evento al cual desea asistir:</h3>
       {events.length === 0 ? (
         <p className="text-center">No hay eventos disponibles.</p>
       ) : (
@@ -123,4 +143,3 @@ export default function EventList({ email }: { email: string }) {
     </div>
   )
 }
-

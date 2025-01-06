@@ -16,11 +16,8 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-24">
         <h1 className="text-3xl font-bold mb-8 text-center">
-            Invitaciones a Eventos para:
+            Encuentro SAE mensual - Enero 2025
         </h1>
-        <p className="text-2xl mb-8 text-center text-blue-600">
-            {decodedCorreo}
-        </p>
         <EventList email={decodedCorreo} />
         </main>
     )
