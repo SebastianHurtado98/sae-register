@@ -124,17 +124,17 @@ export default function EventList({ email }: { email: string }) {
                     <span><strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}</span>                   
                 </div>
                 <div className="mt-4 text-center">
-                  <Button 
-                    className={`px-6 py-3 rounded-md ${
-                      event.registered 
-                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                        : 'bg-blue-500 text-white'
-                    }`}
-                    onClick={() => handleRegister(event.id)}
-                    disabled={event.registered} 
-                  >
-                    {event.registered ? 'Registrado' : 'Registrarse'}
-                  </Button>
+                <Button 
+                  style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
+                  className={`px-6 py-3 rounded-md ${
+                    event.registered ? 'cursor-not-allowed' : ''
+                  }`}
+                  onClick={() => handleRegister(event.id)}
+                  disabled={event.registered}
+                >
+                  {event.registered ? 'Registrado' : 'Registrarse'}
+                </Button>
+
                 </div>
               </li>
             ))}
