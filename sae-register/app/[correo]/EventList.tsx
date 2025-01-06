@@ -122,24 +122,45 @@ export default function EventList({ email }: { email: string }) {
               <span>
                 <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
               </span>
+              {event.event_type === 'Virtual' && (
+                <p className="text-sm text-blue-600 mt-2">
+                  Nota: El registro a este evento se realizará vía Zoom. Haga click en el botón de Registro.
+                </p>
+              )}
             </div>
             <div className="mt-4 text-center">
-              <Button
-                style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
-                className={`px-4 py-2 rounded-md ${
-                  event.registered ? 'cursor-not-allowed' : ''
-                }`}
-                onClick={() => handleRegister(event.id)}
-                disabled={event.registered}
-              >
-                {event.registered ? 'Registrado' : 'Registrarse'}
-              </Button>
+              {event.event_type === 'Virtual' ? (
+                <a
+                  href="https://us02web.zoom.us/webinar/register/WN_Cj9_wD_ERze4Qym8WtO8VA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button
+                    style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
+                    className="px-4 py-2 rounded-md"
+                  >
+                    Registrarse en Zoom
+                  </Button>
+                </a>
+              ) : (
+                <Button
+                  style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
+                  className={`px-4 py-2 rounded-md ${
+                    event.registered ? 'cursor-not-allowed' : ''
+                  }`}
+                  onClick={() => handleRegister(event.id)}
+                  disabled={event.registered}
+                >
+                  {event.registered ? 'Registrado' : 'Registrarse'}
+                </Button>
+              )}
             </div>
           </li>
         ))}
     </ul>
   )}
 </div>
+
 
   )
 }
