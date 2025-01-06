@@ -31,61 +31,50 @@ export default function EventList({ email }: { email: string }) {
             event:event_id (*)`,            
             { count: 'exact' })
         .eq('email', email)     
-    
       if (error) {
         console.error('Error fetching guests:', error)
         return
       }
-    
       if (data && count !== null) {
-        console.log("Raw data:", data);
-
-        // Set the guest name based on the first matching criteria
-        //@ts-expect-error type check
+        //@ts-expect-error type
         const guest = data.find(item => item.event.register_open);
         if (guest) {
           if (guest.is_user && guest.executive) {
-            //@ts-expect-error type check
+            //@ts-expect-error type
             setGuestName(`${guest.executive.name} ${guest.executive.last_name}`);
           } else {
             setGuestName(guest.name);
           }
         }
-
         const mappedEvents = data
-        .map(item => ({
-          ...item.event, 
-          registered: item.registered
-        }))
-        .flat()      
-        .sort((a, b) => new Date(a.date_hour).getTime() - new Date(b.date_hour).getTime()); // Ordenar por fecha  
+          .map(item => ({
+            ...item.event,
+            registered: item.registered
+          }))
+          //@ts-expect-error type
+          .sort((a, b) => new Date(a.date_hour).getTime() - new Date(b.date_hour).getTime())
+          //@ts-expect-error type
         setEvents(mappedEvents);
       }
     }
-
     fetchGuests()
   }, [email])
 
   const handleRegister = async (eventId: number) => {
     const { data, error } = await supabase
       .from('event_guest')
-      .update({'registered': true})
+      .update({ 'registered': true })
       .eq('email', email)
       .eq('event_id', eventId)
       .select()
-
     if (error) {
       console.error('Error updating guest:', error)
       return
     }
     if (data) {
-      console.log("Data:", data);
-      
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === eventId
-            ? { ...event, registered: true }
-            : event
+      setEvents(prevEvents =>
+        prevEvents.map(event =>
+          event.id === eventId ? { ...event, registered: true } : event
         )
       )
     }
@@ -98,48 +87,59 @@ export default function EventList({ email }: { email: string }) {
       month: 'long',
       day: 'numeric',
       hour: 'numeric',
-      minute: 'numeric',      
+      minute: 'numeric',
     })
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-center">{guestName || 'Nombre no disponible'}</h2>
-      <h2 className="text-2xl font-bold mb-6 text-center">{email}</h2>
-      <h3 className="text-2xl font-bold mb-6 text-center">Por favor registrarse en el evento al cual desea asistir:</h3>
-      {events.length === 0 ? (
-        <p className="text-center">No hay eventos disponibles.</p>
-      ) : (
-        <ul className="space-y-6">
-          {events
-            .filter(item => item.register_open)
-            .map(event => (
-              <li key={event.id} className="border p-6 rounded-lg shadow-lg w-full">
-                <div className="flex flex-col space-y-4">
-                    <span className="text-lg font-semibold">{event.name}</span>
-                    <div className="flex justify-between">
-                        <span><strong>Tipo:</strong> {event.event_type}</span>
-                        <span><strong>Lugar:</strong> {event.place}</span>
-                    </div>
-                    <span><strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}</span>                   
-                </div>
-                <div className="mt-4 text-center">
-                <Button 
-                  style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
-                  className={`px-6 py-3 rounded-md ${
-                    event.registered ? 'cursor-not-allowed' : ''
-                  }`}
-                  onClick={() => handleRegister(event.id)}
-                  disabled={event.registered}
-                >
-                  {event.registered ? 'Registrado' : 'Registrarse'}
-                </Button>
+<div className="p-4 w-full max-w-4xl mx-auto sm:px-6">
+  <h2 className="text-lg sm:text-xl mb-4 text-center">{guestName || 'Nombre no disponible'}</h2>
+  <h2 className="text-lg sm:text-xl mb-4 text-center">{email}</h2>
+  <h3 className="text-base sm:text-lg font-semibold mb-4 text-center">
+    Por favor registrarse en el evento al cual desea asistir:
+  </h3>
+  {events.length === 0 ? (
+    <p className="text-center text-base sm:text-lg">No hay eventos disponibles.</p>
+  ) : (
+    <ul className="grid grid-cols-1 gap-6">
+      {events
+        .filter((item) => item.register_open)
+        .map((event) => (
+          <li
+            key={event.id}
+            className="border rounded-lg shadow-lg p-4 bg-white w-full"
+          >
+            <div className="flex flex-col space-y-2">
+              <span className="text-base sm:text-lg font-bold">{event.name}</span>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span>
+                  <strong>Tipo:</strong> {event.event_type}
+                </span>
+                <span>
+                  <strong>Lugar:</strong> {event.place}
+                </span>
+              </div>
+              <span>
+                <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
+              </span>
+            </div>
+            <div className="mt-4 text-center">
+              <Button
+                style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
+                className={`px-4 py-2 rounded-md ${
+                  event.registered ? 'cursor-not-allowed' : ''
+                }`}
+                onClick={() => handleRegister(event.id)}
+                disabled={event.registered}
+              >
+                {event.registered ? 'Registrado' : 'Registrarse'}
+              </Button>
+            </div>
+          </li>
+        ))}
+    </ul>
+  )}
+</div>
 
-                </div>
-              </li>
-            ))}
-        </ul>
-      )}
-    </div>
   )
 }
