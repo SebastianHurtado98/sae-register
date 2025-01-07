@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
+import DOMPurify from 'dompurify';
+
 
 type Event = {
     id: number
@@ -12,6 +14,7 @@ type Event = {
     place: string
     register_open: boolean
     registered: boolean
+    html_description: string
 }
 
 export default function EventList({ email }: { email: string }) {
@@ -30,7 +33,10 @@ export default function EventList({ email }: { email: string }) {
             registered,
             event:event_id (*)`,            
             { count: 'exact' })
-        .eq('email', email)     
+        .eq('email', email)
+      
+      // @ts-expect-error type
+      console.log(DOMPurify.sanitize(data[3].event.html_description.replace(/\\/g, '')));
       if (error) {
         console.error('Error fetching guests:', error)
         return
@@ -95,15 +101,18 @@ export default function EventList({ email }: { email: string }) {
 <div className="p-4 w-full max-w-4xl mx-auto sm:px-6">
   <h2 className="text-lg sm:text-xl mb-4 text-center">{guestName || 'Nombre no disponible'}</h2>
   <h2 className="text-lg sm:text-xl mb-4 text-center">{email}</h2>
-  <h3 className="text-base sm:text-lg font-semibold mb-4 text-center">
-    Por favor registrarse en el evento al cual desea asistir:
-  </h3>
+  <div className="mb-6">
+    <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
+      Elige la reunión de tu preferencia:
+    </h4>
+  </div>
   {events.length === 0 ? (
     <p className="text-center text-base sm:text-lg">No hay eventos disponibles.</p>
   ) : (
     <ul className="grid grid-cols-1 gap-6">
+      {/* Reuniones presenciales */}
       {events
-        .filter((item) => item.register_open)
+        .filter((item) => item.register_open && item.event_type === 'Presencial')
         .map((event) => (
           <li
             key={event.id}
@@ -113,7 +122,7 @@ export default function EventList({ email }: { email: string }) {
               <span className="text-base sm:text-lg font-bold">{event.name}</span>
               <div className="flex justify-between text-sm sm:text-base">
                 <span>
-                  <strong>Tipo:</strong> {event.event_type}
+                  <strong>Modalidad:</strong> {event.event_type}
                 </span>
                 <span>
                   <strong>Lugar:</strong> {event.place}
@@ -122,39 +131,70 @@ export default function EventList({ email }: { email: string }) {
               <span>
                 <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
               </span>
-              {event.event_type === 'Virtual' && (
-                <p className="text-sm text-blue-600 mt-2">
-                  Nota: El registro a este evento se realizará vía Zoom. Haga click en el botón de Registro.
-                </p>
-              )}
+              <div
+                className="text-sm sm:text-base"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) }}
+                />
             </div>
             <div className="mt-4 text-center">
-              {event.event_type === 'Virtual' ? (
-                <a
-                  href="https://us02web.zoom.us/webinar/register/WN_Cj9_wD_ERze4Qym8WtO8VA"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button
-                    style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
-                    className="px-4 py-2 rounded-md"
-                    disabled={event.registered}
-                  >
-                    {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
-                  </Button>
-                </a>
-              ) : (
+              <Button
+                style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
+                className={`px-4 py-2 rounded-md ${
+                  event.registered ? 'cursor-not-allowed' : ''
+                }`}
+                onClick={() => handleRegister(event.id)}
+                disabled={event.registered}
+              >
+                {event.registered ? 'Registrado' : 'Registrarse'}
+              </Button>
+            </div>
+          </li>
+        ))}
+
+      {/* Reuniones virtuales */}
+      {events
+        .filter((item) => item.register_open && item.event_type === 'Virtual')
+        .map((event) => (
+          <li
+            key={event.id}
+            className="border rounded-lg shadow-lg p-4 bg-white w-full"
+          >
+            <div className="flex flex-col space-y-2">
+               <p style={{ color: '#006F96' }}>Reunión virtual</p>
+              <span className="text-base sm:text-lg font-bold">{event.name}</span>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span>
+                  <strong>Modalidad:</strong> {event.event_type}
+                </span>
+                <span>
+                  <strong>Lugar:</strong> {event.place}
+                </span>
+              </div>
+              <span>
+                <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
+              </span>
+              <div
+                className="text-sm sm:text-base"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) }}
+                />
+              <p style={{ color: '#006F96' }}>
+                Nota: El registro a este evento se realizará vía Zoom. Haga click en el botón de Registro.
+              </p>
+            </div>
+            <div className="mt-4 text-center">
+              <a
+                href="https://us02web.zoom.us/webinar/register/WN_Cj9_wD_ERze4Qym8WtO8VA"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
-                  className={`px-4 py-2 rounded-md ${
-                    event.registered ? 'cursor-not-allowed' : ''
-                  }`}
-                  onClick={() => handleRegister(event.id)}
+                  className="px-4 py-2 rounded-md"
                   disabled={event.registered}
                 >
-                  {event.registered ? 'Registrado' : 'Registrarse'}
+                  {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
                 </Button>
-              )}
+              </a>
             </div>
           </li>
         ))}

@@ -21,7 +21,7 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
             className="mb-8 w-64 h-auto"
         />
         <h1 className="text-3xl mb-8 text-center">
-            Encuentro SAE mensual - Enero 2025
+            Encuentro mensual - Enero 2025
         </h1>
         <EventList email={decodedCorreo} />
         </main>
