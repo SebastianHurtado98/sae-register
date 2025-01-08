@@ -34,9 +34,8 @@ export default function EventList({ email }: { email: string }) {
             event:event_id (*)`,            
             { count: 'exact' })
         .eq('email', email)
-      
-      // @ts-expect-error type
-      console.log(DOMPurify.sanitize(data[3].event.html_description.replace(/\\/g, '')));
+      console.log(data);
+
       if (error) {
         console.error('Error fetching guests:', error)
         return
