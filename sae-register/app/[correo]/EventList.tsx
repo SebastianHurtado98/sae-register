@@ -30,113 +30,74 @@ export default function EventList({ email }: { email: string }) {
   const [useSameEmail, setUseSameEmail] = useState<boolean>(false)
 
   useEffect(() => {
-    async function fetchGuests() {
+    async function fetchConsolidatedEventGuests() {
       try {
         // Primero obtenemos los datos de todos los guests relacionados con el email
-        const { data: guestData, error: guestError } = await supabase
-          .from('guest')
+        const { data: consolidatedEventGuestData, error: consolidatedError } = await supabase
+          .from('consolidated_event_guests')
           .select(
-            `id,
+            `guest_id,
+            guest_name,
+            guest_email,
+            executive_name,
+            executive_last_name,
+            executive_email,
             is_user,
+            executive_id,
+            id,
             name,
-            executive:executive_id (*),
-            list_id`
+            event_type,
+            date_hour,
+            place,
+            register_open,
+            html_description,
+            macro_event_id,
+            event_registered,
+            event_guest_id,
+            zoom_webinar
+            `
           )
-          .eq('email', email);
+          .eq('register_open', true)
+          .or(`executive_email.eq.${email},guest_email.eq.${email}`);
 
-        console.log('guestData', guestData);
-    
-        if (guestError) {
-          console.error('Error fetching guest:', guestError);
+        console.log('consolidatedEventGuestData', consolidatedEventGuestData);
+
+        if (consolidatedError) {
+          console.error('Error fetching consolidatedEventGuestData:', consolidatedError);
           return;
         }
-    
-        if (guestData && guestData.length > 0) {
-          // Mostrar el nombre del primer guest para fines de encabezado
-          const firstGuest = guestData[0];
-          if (firstGuest.is_user && firstGuest.executive) {
-            //@ts-expect-error type
-            setGuestName(`${firstGuest.executive.name} ${firstGuest.executive.last_name}`);
+
+        if (consolidatedEventGuestData && consolidatedEventGuestData.length > 0) {
+          const firstGuest = consolidatedEventGuestData[0];
+          if (firstGuest.executive_name) {
+            setGuestName(`${firstGuest.executive_name} ${firstGuest.executive_last_name}`);
           } else {
-            setGuestName(firstGuest.name);
+            setGuestName(firstGuest.guest_name);
           }
-    
-          // Inicializar un array para almacenar todos los eventos de todos los guests
-          let allMappedEvents: Event[] = [];
-    
-          // Iterar sobre cada guest
-          for (const guest of guestData) {
-            // Obtener los event_ids relacionados al list_id del guest
-            const { data: eventListData, error: eventListError } = await supabase
-              .from('event_list')
-              .select('event_id')
-              .eq('list_id', guest.list_id);
-    
-            if (eventListError) {
-              console.error(`Error fetching event list for guest ${guest.id}:`, eventListError);
-              continue;
-            }
-    
-            if (eventListData && eventListData.length > 0) {
-              const eventIds = eventListData.map((item) => item.event_id);
-    
-              // Obtener los eventos basados en los event_ids
-              const { data: eventData, error: eventError } = await supabase
-                .from('event')
-                .select('*')
-                .in('id', eventIds);
-    
-              if (eventError) {
-                console.error(`Error fetching events for guest ${guest.id}:`, eventError);
-                continue;
-              }
-    
-              if (eventData) {
-                // Obtener el estado de registro de cada evento para el guest actual
-                const { data: eventGuestData, error: eventGuestError } = await supabase
-                  .from('event_guest')
-                  .select('event_id, registered')
-                  .eq('guest_id', guest.id)
-                  .in('event_id', eventIds);
-    
-                if (eventGuestError) {
-                  console.error(`Error fetching event_guest data for guest ${guest.id}:`, eventGuestError);
-                  continue;
-                }
-    
-                // Crear un mapa para el estado de registro
-                const registrationMap = eventGuestData?.reduce((map, item) => {
-                  map[item.event_id] = item.registered;
-                  return map;
-                }, {} as Record<number, boolean>) || {};
-    
-                // Mapear los eventos y agregar el estado de registro y guest_id correspondiente
-                const mappedEvents = eventData.map((event) => ({
-                  ...event,
-                  registered: registrationMap[event.id] || false, // Obtener el estado de registro del mapa
-                  guest_id: guest.id, // Asociar el guest_id
-                }));
-    
-                // Agregar los eventos al array acumulador
-                allMappedEvents = [...allMappedEvents, ...mappedEvents];
-              }
-            }
-          }
-    
-          // Ordenar todos los eventos por fecha
-          const sortedEvents = allMappedEvents.sort(
-            (a, b) => new Date(a.date_hour).getTime() - new Date(b.date_hour).getTime()
-          );
-    
-          // Actualizar el estado con todos los eventos
-          setEvents(sortedEvents);
+
+          // Mapear los eventos con su estado registrado
+          const mappedEvents = consolidatedEventGuestData.map((event) => ({
+            id: event.id,
+            guest_id: event.guest_id,
+            name: event.name,
+            event_type: event.event_type,
+            date_hour: event.date_hour,
+            place: event.place,
+            register_open: event.register_open,
+            registered: event.event_registered,
+            html_description: event.html_description,
+            zoom_webinar: event.zoom_webinar,
+          }));
+
+          // Ordenar eventos por fecha y actualizar el estado
+          setEvents(mappedEvents.sort((a, b) => new Date(a.date_hour).getTime() - new Date(b.date_hour).getTime()));
         }
       } catch (err) {
         console.error('Unexpected error:', err);
       }
     }
-  
-    fetchGuests();
+
+    fetchConsolidatedEventGuests();
   }, [email]);
   
 
@@ -150,53 +111,56 @@ export default function EventList({ email }: { email: string }) {
 
   const handleConfirmRegistration = async () => {
     if (selectedEvent) {
-
-      if(selectedEvent.event_type === "Virtual"){
+  
+      if (selectedEvent.event_type === "Virtual") {
         const zoomResult = await handleZoomRegistration();
-      if (!zoomResult) {
-        console.error("Zoom registration failed, aborting...");
-        return; 
+        if (!zoomResult) {
+          console.error("Zoom registration failed, aborting...");
+          return;
+        }
       }
-      }
-
+  
       const { data, error } = await supabase
         .from("event_guest")
-        .update({ 
+        .upsert({
+          guest_id: selectedEvent.guest_id,
+          event_id: selectedEvent.id,
           registered: true,
-          //zoom_email: selectedEvent.event_type === "Virtual" ? zoomEmail : null, 
+        }, { onConflict: "guest_id,event_id"
         })
-        .eq("guest_id", selectedEvent.guest_id)
-        .eq("event_id", selectedEvent.id)
-        .select()
+        .select();
+  
       if (error) {
-        console.error("Error updating guest:", error)
-        return
+        console.error("Error upserting guest:", error);
+        return;
       }
-
+  
       if (data) {
-
-        if(selectedEvent.event_type === "Virtual" && useSameEmail){
+        if (selectedEvent.event_type === "Virtual" && useSameEmail) {
           const { error } = await supabase
             .from("guest")
-            .update({             
-              zoom_email: zoomEmail, 
+            .update({
+              zoom_email: zoomEmail,
             })
-            .eq("id", selectedEvent.guest_id)          
-
+            .eq("id", selectedEvent.guest_id);
+  
           if (error) {
-            console.error("Error updating guest:", error)
-            return
+            console.error("Error updating guest:", error);
+            return;
           }
         }
-
+  
         setEvents((prevEvents) =>
-          prevEvents.map((event) => (event.id === selectedEvent.id ? { ...event, registered: true } : event)),
-        )
+          prevEvents.map((event) =>
+            event.id === selectedEvent.id ? { ...event, registered: true } : event
+          )
+        );
       }
-      setIsModalOpen(false)
-      setSelectedEvent(null)
+      setIsModalOpen(false);
+      setSelectedEvent(null);
     }
-  }
+  };
+  
 
   const handleZoomRegistration = async () => {
     try {
