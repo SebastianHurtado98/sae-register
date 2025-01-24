@@ -1,9 +1,11 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Input } from "@/components/ui/input"
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify';
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal"
 
 
 type Event = {
@@ -21,6 +23,10 @@ type Event = {
 export default function EventList({ email }: { email: string }) {
   const [events, setEvents] = useState<Event[]>([])
   const [guestName, setGuestName] = useState<string>('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [zoomEmail, setZoomEmail] = useState<string>(email)
+  const [useSameEmail, setUseSameEmail] = useState<boolean>(false)
 
   useEffect(() => {
     async function fetchGuests() {
@@ -133,23 +139,52 @@ export default function EventList({ email }: { email: string }) {
   }, [email]);
   
 
-  const handleRegister = async (eventId: number, guestId: number) => {
-    const { data, error } = await supabase
-      .from('event_guest')
-      .update({ 'registered': true })
-      .eq('guest_id', guestId)
-      .eq('event_id', eventId)
-      .select()
-    if (error) {
-      console.error('Error updating guest:', error)
-      return
+  const handleRegister = async (eventId: number) => {
+    const event = events.find((e) => e.id === eventId)
+    if (event) {
+      setSelectedEvent(event)
+      setIsModalOpen(true)
     }
-    if (data) {
-      setEvents(prevEvents =>
-        prevEvents.map(event =>
-          event.id === eventId ? { ...event, registered: true } : event
+  }
+
+  const handleConfirmRegistration = async () => {
+    if (selectedEvent) {
+      const { data, error } = await supabase
+        .from("event_guest")
+        .update({ 
+          registered: true,
+          //zoom_email: selectedEvent.event_type === "Virtual" ? zoomEmail : null, 
+        })
+        .eq("guest_id", selectedEvent.guest_id)
+        .eq("event_id", selectedEvent.id)
+        .select()
+      if (error) {
+        console.error("Error updating guest:", error)
+        return
+      }
+
+      if (data) {
+
+        if(selectedEvent.event_type === "Virtual" && useSameEmail){
+          const { error } = await supabase
+            .from("guest")
+            .update({             
+              zoom_email: zoomEmail, 
+            })
+            .eq("id", selectedEvent.guest_id)          
+
+          if (error) {
+            console.error("Error updating guest:", error)
+            return
+          }
+        }
+
+        setEvents((prevEvents) =>
+          prevEvents.map((event) => (event.id === selectedEvent.id ? { ...event, registered: true } : event)),
         )
-      )
+      }
+      setIsModalOpen(false)
+      setSelectedEvent(null)
     }
   }
 
@@ -162,6 +197,15 @@ export default function EventList({ email }: { email: string }) {
       hour: 'numeric',
       minute: 'numeric',
     })
+  }
+
+  const handleCheckboxChange = () => {
+    setUseSameEmail(!useSameEmail)
+    if (useSameEmail) {
+      setZoomEmail('')
+    } else {
+      setZoomEmail(email)
+    }
   }
 
   return (
@@ -209,7 +253,7 @@ export default function EventList({ email }: { email: string }) {
                 className={`px-4 py-2 rounded-md ${
                   event.registered ? 'cursor-not-allowed' : ''
                 }`}
-                onClick={() => handleRegister(event.id, event.guest_id)}
+                onClick={() => handleRegister(event.id)}
                 disabled={event.registered}
               >
                 {event.registered ? 'Registrado' : 'Registrarse'}
@@ -242,31 +286,66 @@ export default function EventList({ email }: { email: string }) {
               </span>
               <div
                 className="text-sm sm:text-base"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) }}
+                dangerouslySetInnerHTML={{ __html: event.html_description ? DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) : '' }}
                 />
-              <p style={{ color: '#006F96' }}>
-                Nota: El registro a este evento se realizará vía Zoom. Haga click en el botón de Registro.
-              </p>
             </div>
-            <div className="mt-4 text-center">
-              <a
-                href="https://us02web.zoom.us/webinar/register/WN_Cj9_wD_ERze4Qym8WtO8VA"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+
+            {!event.registered && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="use-same-email"
+                checked={useSameEmail}
+                onChange={handleCheckboxChange}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label htmlFor="use-same-email" className="text-sm font-medium text-gray-700">
+                Deseo cambiar mi correo para entrar a zoom
+              </label>
+            </div>
+            )}
+
+            <div className="mt-4 space-y-4">
+              {useSameEmail && !event.registered && (
+                <div>
+                  <label htmlFor={`zoom-email-${event.id}`} className="block text-sm font-medium text-gray-700">
+                    Correo electrónico para Zoom
+                  </label>
+                  <Input
+                    type="email"
+                    id={`zoom-email-${event.id}`}
+                    value={zoomEmail}
+                    onChange={(e) => setZoomEmail(e.target.value)}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                )}
+
+                <div className="text-center">
                 <Button
                   style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
                   className="px-4 py-2 rounded-md"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleRegister(event.id)
+                  }}
                   disabled={event.registered}
                 >
                   {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
                 </Button>
-              </a>
+                </div>
             </div>
           </li>
         ))}
     </ul>
   )}
+  <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmRegistration}
+        eventName={selectedEvent?.name || ""}
+      />
 </div>
 
 
