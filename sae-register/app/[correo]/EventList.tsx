@@ -36,6 +36,8 @@ export default function EventList({ email }: { email: string }) {
             list_id`
           )
           .eq('email', email);
+
+        console.log('guestData', guestData);
     
         if (guestError) {
           console.error('Error fetching guest:', guestError);
@@ -198,7 +200,7 @@ export default function EventList({ email }: { email: string }) {
               </span>
               <div
                 className="text-sm sm:text-base"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description?.replace(/\\/g, '')) }}
                 />
             </div>
             <div className="mt-4 text-center">
