@@ -1,11 +1,13 @@
 'use client'
 
 import { notFound } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import EventList from './EventList'
-import { use } from 'react'
+import { use, useEffect, useState } from 'react'
 import Image from "next/image"
 
 export default function InvitacionesPage({ params }: { params: Promise<{ correo: string }> }) {
+    const [macroEventName, setMacroEventName] = useState<string>()
     const resolvedParams = use(params)
 
     const decodedCorreo = decodeURIComponent(resolvedParams.correo)
@@ -14,6 +16,28 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(decodedCorreo)) {
         notFound()
+    }
+
+    useEffect(() => {
+        fetchMacroEvent()
+    }, [])
+
+    async function fetchMacroEvent() {
+        const { data, error } = await supabase
+        .from('macro_event')
+        .select('name')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+        const currentMonth = new Date().toLocaleString('es-ES', { month: 'long', timeZone: 'UTC' })
+        const formattedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)
+        setMacroEventName(`Encuentro mensual - ${formattedMonth} 2025`) 
+
+        if (error) {
+            console.error('Error fetching macro_events:', error)            
+        } else if (data && data.length > 0) {
+            setMacroEventName(data[0].name) 
+        }
     }
 
     return (
@@ -26,7 +50,7 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
             className="mb-8"
         />
         <h1 className="text-3xl mb-8 text-center">
-            Encuentro mensual - Enero 2025
+            {macroEventName}
         </h1>
         <EventList email={decodedCorreo} />
         </main>
