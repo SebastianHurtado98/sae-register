@@ -18,6 +18,7 @@ type Event = {
     register_open: boolean
     registered: boolean
     html_description: string
+    zoom_webinar: string
 }
 
 export default function EventList({ email }: { email: string }) {
@@ -149,6 +150,15 @@ export default function EventList({ email }: { email: string }) {
 
   const handleConfirmRegistration = async () => {
     if (selectedEvent) {
+
+      if(selectedEvent.event_type === "Virtual"){
+        const zoomResult = await handleZoomRegistration();
+      if (!zoomResult) {
+        console.error("Zoom registration failed, aborting...");
+        return; 
+      }
+      }
+
       const { data, error } = await supabase
         .from("event_guest")
         .update({ 
@@ -188,6 +198,62 @@ export default function EventList({ email }: { email: string }) {
     }
   }
 
+  const handleZoomRegistration = async () => {
+    try {
+      const response = await fetch('/api/zoom-token', {
+          method: 'POST',
+      });
+
+      if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message);
+      }
+
+      const data = await response.json();
+      console.log('Token:', data);
+
+      const webinarSuccess = await registerForWebinar(data.access_token);
+      if (!webinarSuccess) {
+        console.error("Error en el registro del webinar. Operación cancelada.");
+        return false;
+      }
+      return true;
+
+    } catch (error) {
+      console.error('Error fetching token:', error);
+    }
+  }
+
+  const registerForWebinar = async (token: string) => {
+    try {
+      const response = await fetch('/api/register-zoom-webinar', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            webinarId: selectedEvent?.zoom_webinar, 
+            firstName: guestName || 'Invitado',
+            lastName: '-',
+            email: (useSameEmail ? zoomEmail : email),
+            token: token,
+        }),
+      });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message);
+        }
+
+        const data = await response.json();
+        console.log('Registrado con éxito:', data);
+        return true;
+    } catch (error) {
+        console.error('Error al registrarse:', error);
+        return false;
+    }
+  }
+  
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime)
     return date.toLocaleString('es-ES', {
