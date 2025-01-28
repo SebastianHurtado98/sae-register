@@ -178,6 +178,8 @@ export default function EventList({ email, macroEventId }: { email: string, macr
           )
         );
       }
+
+      handleEmailConfirmation();
       setIsModalOpen(false);
       setSelectedEvent(null);
     }
@@ -257,6 +259,32 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       setZoomEmail('')
     } else {
       setZoomEmail(email)
+    }
+  }
+
+  const handleEmailConfirmation = async () => {  
+    const emailData = {
+      to: "shurtado100998@gmail.com",
+      template_id: "d-e9c0123bda8f46eabd8cda5feb941e09",        
+      first_name: "Sebastian",
+      register_link: `https://sae-register.vercel.app/${encodeURIComponent("shurtado100998@gmail.com")}`        
+    }
+
+    try {
+      const response = await fetch("/api/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(emailData),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send email")
+      }
+
+    } catch (error) {
+      console.error(`Error sending email to guest.email:`, error)
     }
   }
 
