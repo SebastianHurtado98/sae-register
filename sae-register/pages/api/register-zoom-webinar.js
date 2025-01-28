@@ -3,9 +3,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ message: 'Only POST requests are allowed' });
     }
 
-    const { webinarId, firstName, lastName, email, token } = req.body;
+    const { webinarId, firstName, lastName, email, token, org } = req.body;
 
-    if (!webinarId || !firstName || !lastName || !email || !token) {
+    if (!webinarId || !firstName || !lastName || !email || !token || !org) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -22,6 +22,7 @@ export default async function handler(req, res) {
                 first_name: firstName,
                 last_name: lastName,
                 email: email,
+                org: org,
             }),
         });
 

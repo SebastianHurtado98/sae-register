@@ -230,6 +230,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
             firstName: guestName || 'Invitado',
             lastName: '-',
             email: (useSameEmail ? zoomEmail : email),
+            org: 'Organizacion',
             token: token,
         }),
       });
