@@ -272,11 +272,12 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   }
 
   const handleEmailConfirmation = async () => {  
+    const emailToUse = hasBeenReplaced ? newGuestEmail : email
     const emailData = {
-      to: "shurtado100998@gmail.com",
-      template_id: "d-e9c0123bda8f46eabd8cda5feb941e09",        
-      first_name: "Sebastian",
-      register_link: `https://sae-register.vercel.app/${encodeURIComponent("shurtado100998@gmail.com")}`        
+      to: emailToUse,
+      template_id: "d-135fee68a2ac4cabad091a860be4331e",        
+      first_name: hasBeenReplaced ? replacementName : guestName,
+      register_link: `https://sae-register.vercel.app/${encodeURIComponent(emailToUse)}`
     }
 
     try {
