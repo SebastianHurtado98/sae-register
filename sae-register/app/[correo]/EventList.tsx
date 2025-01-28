@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify';
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal"
-import { useRouter } from "next/navigation"
 
 
 type Event = {
@@ -35,12 +34,12 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   const [showReplaceForm, setShowReplaceForm] = useState(false)
   const [replacementEmail, setReplacementEmail] = useState("")
   const [replacementName, setReplacementName] = useState("")
-  const router = useRouter()
 
   useEffect(() => {
     async function fetchConsolidatedEventGuests() {
       try {
         // Primero obtenemos los datos de todos los guests relacionados con el email
+        const emailToUse = hasBeenReplaced ? newGuestEmail : email;
         const { data: consolidatedEventGuestData, error: consolidatedError } = await supabase
           .from('consolidated_event_guests')
           .select(
@@ -66,7 +65,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
             `
           )
           .eq('register_open', true)
-          .or(`executive_email.eq.${email},guest_email.eq.${email}`);
+          .or(`executive_email.eq.${emailToUse},guest_email.eq.${emailToUse}`);
 
         console.log('consolidatedEventGuestData', consolidatedEventGuestData);
 
@@ -78,10 +77,14 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         if (consolidatedEventGuestData && consolidatedEventGuestData.length > 0) {
           const firstGuest = consolidatedEventGuestData[0];
           // check if not substitute
+          if(!hasBeenReplaced){
           if (firstGuest.executive_name) {
             setGuestName(`${firstGuest.executive_name} ${firstGuest.executive_last_name}`);
           } else {
             setGuestName(firstGuest.guest_name);
+          }
+          } else {
+            setReplacementName(firstGuest.guest_name)
           }
 
           // Mapear los eventos con su estado registrado
@@ -126,8 +129,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
 
     fetchConsolidatedEventGuests();
     checkIfNotReplaced();
-  }, [email]);
-  
+  }, [email, hasBeenReplaced, newGuestEmail, macroEventId]);  
 
   const handleRegister = async (eventId: number) => {
     const event = events.find((e) => e.id === eventId)
@@ -352,7 +354,6 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       setNewGuestEmail(replacementEmail)
       setShowReplaceForm(false)
 
-      router.push(`/${encodeURIComponent(replacementEmail)}`)
     } catch (error) {
       console.error("Error al registrar el reemplazo:", error)
     }
@@ -369,16 +370,18 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         Este usuario ha sido reemplazado por {newGuestEmail}
       </h2>
       <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
-        El sustituto debe registrarse en este <a href={`https://sae-register.vercel.app/${encodeURIComponent(newGuestEmail)}`}>link</a>.
+        Lista de eventos del reemplazo {replacementName}
       </h4>
     </div>
-  ) : (
-    <div>
+  ) : (    
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
       <Button onClick={() => setShowReplaceForm(!showReplaceForm)} className="mb-4" style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}>
         {showReplaceForm ? 'Cancelar reemplazo' : 'Registrar reemplazo'}
-      </Button>
+      </Button>      
       </div>
+  )
+  }
+    <div>
       {showReplaceForm && (
         <form onSubmit={handleReplaceSubmit} className="mb-6">
           <Input
@@ -538,8 +541,6 @@ export default function EventList({ email, macroEventId }: { email: string, macr
           eventName={selectedEvent?.name || ""}
         />
   </div>
-  )
-}
 </div>
 
 
