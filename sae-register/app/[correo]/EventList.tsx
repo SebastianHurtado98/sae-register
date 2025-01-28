@@ -316,6 +316,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
           name: replacementName,
           list_id: originalGuest.list_id, 
           tipo_usuario: "Reemplazo",
+          position: "Reemplazo",
         })
         .select()
 
