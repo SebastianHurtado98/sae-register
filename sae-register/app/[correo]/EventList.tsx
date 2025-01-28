@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify';
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal"
+import { useRouter } from "next/navigation"
 
 
 type Event = {
@@ -30,6 +31,11 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   const [useSameEmail, setUseSameEmail] = useState<boolean>(false)
   const [hasBeenReplaced, setHasBeenReplaced] = useState<boolean>(false)
   const [newGuestEmail, setNewGuestEmail] = useState<string>('')
+
+  const [showReplaceForm, setShowReplaceForm] = useState(false)
+  const [replacementEmail, setReplacementEmail] = useState("")
+  const [replacementName, setReplacementName] = useState("")
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchConsolidatedEventGuests() {
@@ -288,6 +294,68 @@ export default function EventList({ email, macroEventId }: { email: string, macr
     }
   }
 
+  const handleReplaceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const { data: originalGuest, error: originalGuestError } = await supabase
+        .from("guest")
+        .select("list_id")
+        .eq("email", email)
+        .single()
+
+      if (originalGuestError) throw originalGuestError
+
+      if (!originalGuest || !originalGuest.list_id) {
+        throw new Error("No se pudo obtener el list_id del guest original")
+      }
+
+      const { data: newGuest, error: newGuestError } = await supabase
+        .from("guest")
+        .insert({ 
+          email: replacementEmail, 
+          name: replacementName,
+          list_id: originalGuest.list_id, 
+          tipo_usuario: "Reemplazo",
+        })
+        .select()
+
+      if (newGuestError) throw newGuestError
+
+      const { data: originalEventGuests, error: originalEventGuestsError } = await supabase
+        .from("event_guest")
+        .select("event_id")
+        .eq("guest_id", events[0].guest_id)
+
+      if (originalEventGuestsError) throw originalEventGuestsError
+
+      const newEventGuests = originalEventGuests.map((eg) => ({
+        guest_id: newGuest[0].id,
+        event_id: eg.event_id,
+        registered: false,
+      }))
+
+      const { error: newEventGuestsError } = await supabase.from("event_guest").insert(newEventGuests)
+
+      if (newEventGuestsError) throw newEventGuestsError
+
+      const { error: substituteError } = await supabase.from("substitutes").insert({
+        macro_event_id: macroEventId,
+        original_guest_email: email,
+        new_guest_email: replacementEmail,
+      })
+
+      if (substituteError) throw substituteError
+
+      setHasBeenReplaced(true)
+      setNewGuestEmail(replacementEmail)
+      setShowReplaceForm(false)
+
+      router.push(`/${encodeURIComponent(replacementEmail)}`)
+    } catch (error) {
+      console.error("Error al registrar el reemplazo:", error)
+    }
+  }
+
   return (
 <div className="p-4 w-full max-w-4xl mx-auto sm:px-6">
   <h2 className="text-lg sm:text-xl mb-4 text-center">{guestName || 'Nombre no disponible'}</h2>
@@ -304,6 +372,35 @@ export default function EventList({ email, macroEventId }: { email: string, macr
     </div>
   ) : (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <Button onClick={() => setShowReplaceForm(!showReplaceForm)} className="mb-4" style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}>
+        {showReplaceForm ? 'Cancelar reemplazo' : 'Registrar reemplazo'}
+      </Button>
+      </div>
+      {showReplaceForm && (
+        <form onSubmit={handleReplaceSubmit} className="mb-6">
+          <Input
+            type="email"
+            placeholder="Correo del reemplazo"
+            value={replacementEmail}
+            onChange={(e) => setReplacementEmail(e.target.value)}
+            required
+            className="mb-2"
+          />
+          <Input
+            type="text"
+            placeholder="Nombre del reemplazo"
+            value={replacementName}
+            onChange={(e) => setReplacementName(e.target.value)}
+            required
+            className="mb-2"
+          />
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          <Button type="submit" style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}>Confirmar reemplazo</Button>
+          </div>
+        </form>
+      )}
+
     <div className="mb-6">
       <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
         Elige la reunión de tu preferencia:
