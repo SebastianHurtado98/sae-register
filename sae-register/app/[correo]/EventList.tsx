@@ -21,13 +21,15 @@ type Event = {
     zoom_webinar: string
 }
 
-export default function EventList({ email }: { email: string }) {
+export default function EventList({ email, macroEventId }: { email: string, macroEventId: number }) {
   const [events, setEvents] = useState<Event[]>([])
   const [guestName, setGuestName] = useState<string>('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [zoomEmail, setZoomEmail] = useState<string>(email)
   const [useSameEmail, setUseSameEmail] = useState<boolean>(false)
+  const [hasBeenReplaced, setHasBeenReplaced] = useState<boolean>(false)
+  const [newGuestEmail, setNewGuestEmail] = useState<string>('')
 
   useEffect(() => {
     async function fetchConsolidatedEventGuests() {
@@ -69,6 +71,7 @@ export default function EventList({ email }: { email: string }) {
 
         if (consolidatedEventGuestData && consolidatedEventGuestData.length > 0) {
           const firstGuest = consolidatedEventGuestData[0];
+          // check if not substitute
           if (firstGuest.executive_name) {
             setGuestName(`${firstGuest.executive_name} ${firstGuest.executive_last_name}`);
           } else {
@@ -97,7 +100,26 @@ export default function EventList({ email }: { email: string }) {
       }
     }
 
+    async function checkIfNotReplaced() {
+      const { data, error } = await supabase
+        .from('substitutes')
+        .select('new_guest_email')
+        .eq('macro_event_id', macroEventId)
+        .eq('original_guest_email', email);
+
+      if (error) {
+        console.error('Error fetching guest:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setHasBeenReplaced(true);
+        setNewGuestEmail(data[0].new_guest_email);
+      }
+    }
+
     fetchConsolidatedEventGuests();
+    checkIfNotReplaced();
   }, [email]);
   
 
@@ -242,140 +264,155 @@ export default function EventList({ email }: { email: string }) {
 <div className="p-4 w-full max-w-4xl mx-auto sm:px-6">
   <h2 className="text-lg sm:text-xl mb-4 text-center">{guestName || 'Nombre no disponible'}</h2>
   <h2 className="text-lg sm:text-xl mb-4 text-center">{email}</h2>
-  <div className="mb-6">
-    <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
-      Elige la reunión de tu preferencia:
-    </h4>
-  </div>
-  {events.length === 0 ? (
-    <p className="text-center text-base sm:text-lg">No hay eventos disponibles.</p>
+  {
+  hasBeenReplaced ? (
+    <div>
+      <h2 className="text-lg sm:text-xl mb-4 text-center">
+        Este usuario ha sido reemplazado por {newGuestEmail}
+      </h2>
+      <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
+        El sustituto debe registrarse en este <a href={`https://sae-register.vercel.app/${encodeURIComponent(newGuestEmail)}`}>link</a>.
+      </h4>
+    </div>
   ) : (
-    <ul className="grid grid-cols-1 gap-6">
-      {/* Reuniones presenciales */}
-      {events
-        .filter((item) => item.register_open && item.event_type === 'Presencial')
-        .map((event) => (
-          <li
-            key={event.id}
-            className="border rounded-lg shadow-lg p-4 bg-white w-full"
-          >
-            <div className="flex flex-col space-y-2">
-              <span className="text-base sm:text-lg font-bold">{event.name}</span>
-              <div className="flex justify-between text-sm sm:text-base">
-                <span>
-                  <strong>Modalidad:</strong> {event.event_type}
-                </span>
-                <span>
-                  <strong>Lugar:</strong> {event.place}
-                </span>
-              </div>
-              <span>
-                <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
-              </span>
-              <div
-                className="text-sm sm:text-base"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description?.replace(/\\/g, '')) }}
-                />
-            </div>
-            <div className="mt-4 text-center">
-              <Button
-                style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
-                className={`px-4 py-2 rounded-md ${
-                  event.registered ? 'cursor-not-allowed' : ''
-                }`}
-                onClick={() => handleRegister(event.id)}
-                disabled={event.registered}
-              >
-                {event.registered ? 'Registrado' : 'Registrarse'}
-              </Button>
-            </div>
-          </li>
-        ))}
-
-      {/* Reuniones virtuales */}
-      {events
-        .filter((item) => item.register_open && item.event_type === 'Virtual')
-        .map((event) => (
-          <li
-            key={event.id}
-            className="border rounded-lg shadow-lg p-4 bg-white w-full"
-          >
-            <div className="flex flex-col space-y-2">
-               <p style={{ color: '#006F96' }}>Reunión virtual</p>
-              <span className="text-base sm:text-lg font-bold">{event.name}</span>
-              <div className="flex justify-between text-sm sm:text-base">
-                <span>
-                  <strong>Modalidad:</strong> {event.event_type}
-                </span>
-                <span>
-                  <strong>Lugar:</strong> {event.place}
-                </span>
-              </div>
-              <span>
-                <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
-              </span>
-              <div
-                className="text-sm sm:text-base"
-                dangerouslySetInnerHTML={{ __html: event.html_description ? DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) : '' }}
-                />
-            </div>
-
-            {!event.registered && (
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="use-same-email"
-                checked={useSameEmail}
-                onChange={handleCheckboxChange}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-              <label htmlFor="use-same-email" className="text-sm font-medium text-gray-700">
-                Deseo cambiar mi correo para entrar a zoom
-              </label>
-            </div>
-            )}
-
-            <div className="mt-4 space-y-4">
-              {useSameEmail && !event.registered && (
-                <div>
-                  <label htmlFor={`zoom-email-${event.id}`} className="block text-sm font-medium text-gray-700">
-                    Correo electrónico para Zoom
-                  </label>
-                  <Input
-                    type="email"
-                    id={`zoom-email-${event.id}`}
-                    value={zoomEmail}
-                    onChange={(e) => setZoomEmail(e.target.value)}
-                    required
-                    className="mt-1"
-                  />
+    <div>
+    <div className="mb-6">
+      <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
+        Elige la reunión de tu preferencia:
+      </h4>
+    </div>
+    {events.length === 0 ? (
+      <p className="text-center text-base sm:text-lg">No hay eventos disponibles.</p>
+    ) : (
+      <ul className="grid grid-cols-1 gap-6">
+        {/* Reuniones presenciales */}
+        {events
+          .filter((item) => item.register_open && item.event_type === 'Presencial')
+          .map((event) => (
+            <li
+              key={event.id}
+              className="border rounded-lg shadow-lg p-4 bg-white w-full"
+            >
+              <div className="flex flex-col space-y-2">
+                <span className="text-base sm:text-lg font-bold">{event.name}</span>
+                <div className="flex justify-between text-sm sm:text-base">
+                  <span>
+                    <strong>Modalidad:</strong> {event.event_type}
+                  </span>
+                  <span>
+                    <strong>Lugar:</strong> {event.place}
+                  </span>
                 </div>
-                )}
-
-                <div className="text-center">
+                <span>
+                  <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
+                </span>
+                <div
+                  className="text-sm sm:text-base"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description?.replace(/\\/g, '')) }}
+                  />
+              </div>
+              <div className="mt-4 text-center">
                 <Button
                   style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
-                  className="px-4 py-2 rounded-md"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleRegister(event.id)
-                  }}
+                  className={`px-4 py-2 rounded-md ${
+                    event.registered ? 'cursor-not-allowed' : ''
+                  }`}
+                  onClick={() => handleRegister(event.id)}
                   disabled={event.registered}
                 >
-                  {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
+                  {event.registered ? 'Registrado' : 'Registrarse'}
                 </Button>
+              </div>
+            </li>
+          ))}
+
+        {/* Reuniones virtuales */}
+        {events
+          .filter((item) => item.register_open && item.event_type === 'Virtual')
+          .map((event) => (
+            <li
+              key={event.id}
+              className="border rounded-lg shadow-lg p-4 bg-white w-full"
+            >
+              <div className="flex flex-col space-y-2">
+                <p style={{ color: '#006F96' }}>Reunión virtual</p>
+                <span className="text-base sm:text-lg font-bold">{event.name}</span>
+                <div className="flex justify-between text-sm sm:text-base">
+                  <span>
+                    <strong>Modalidad:</strong> {event.event_type}
+                  </span>
+                  <span>
+                    <strong>Lugar:</strong> {event.place}
+                  </span>
                 </div>
-            </div>
-          </li>
-        ))}
-    </ul>
-  )}
-  <ConfirmationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onConfirm={handleConfirmRegistration}
-        eventName={selectedEvent?.name || ""}
-      />
+                <span>
+                  <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
+                </span>
+                <div
+                  className="text-sm sm:text-base"
+                  dangerouslySetInnerHTML={{ __html: event.html_description ? DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) : '' }}
+                  />
+              </div>
+
+              {!event.registered && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="use-same-email"
+                  checked={useSameEmail}
+                  onChange={handleCheckboxChange}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <label htmlFor="use-same-email" className="text-sm font-medium text-gray-700">
+                  Deseo cambiar mi correo para entrar a zoom
+                </label>
+              </div>
+              )}
+
+              <div className="mt-4 space-y-4">
+                {useSameEmail && !event.registered && (
+                  <div>
+                    <label htmlFor={`zoom-email-${event.id}`} className="block text-sm font-medium text-gray-700">
+                      Correo electrónico para Zoom
+                    </label>
+                    <Input
+                      type="email"
+                      id={`zoom-email-${event.id}`}
+                      value={zoomEmail}
+                      onChange={(e) => setZoomEmail(e.target.value)}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
+                  )}
+
+                  <div className="text-center">
+                  <Button
+                    style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
+                    className="px-4 py-2 rounded-md"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleRegister(event.id)
+                    }}
+                    disabled={event.registered}
+                  >
+                    {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
+                  </Button>
+                  </div>
+              </div>
+            </li>
+          ))}
+      </ul>
+    )}
+    <ConfirmationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleConfirmRegistration}
+          eventName={selectedEvent?.name || ""}
+        />
+  </div>
+  )
+}
 </div>
 
 

@@ -8,6 +8,7 @@ import Image from "next/image"
 
 export default function InvitacionesPage({ params }: { params: Promise<{ correo: string }> }) {
     const [macroEventName, setMacroEventName] = useState<string>()
+    const [macroEventId, setMacroEventId] = useState<number>()
     const resolvedParams = use(params)
 
     const decodedCorreo = decodeURIComponent(resolvedParams.correo)
@@ -25,7 +26,7 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
     async function fetchMacroEvent() {
         const { data, error } = await supabase
         .from('macro_event')
-        .select('name')
+        .select('id, name')
         .order('created_at', { ascending: false })
         .limit(1)
 
@@ -36,7 +37,8 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
         if (error) {
             console.error('Error fetching macro_events:', error)            
         } else if (data && data.length > 0) {
-            setMacroEventName(data[0].name) 
+            setMacroEventName(data[0].name)
+            setMacroEventId(data[0].id)
         }
     }
 
@@ -52,7 +54,7 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
         <h1 className="text-3xl mb-8 text-center">
             {macroEventName}
         </h1>
-        <EventList email={decodedCorreo} />
+        { macroEventId && <EventList email={decodedCorreo} macroEventId={macroEventId}/> }
         </main>
     )
 }
