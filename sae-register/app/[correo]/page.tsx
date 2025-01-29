@@ -43,19 +43,22 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
     }
 
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <main className="flex flex-col items-center justify-center w-full min-h-screen px-4 sm:px-8">
         <Image 
             src="/SAE Logo Azul.png"
             alt="SAE Logo Azul"
             width={256}
             height={64}
-            className="mb-8"
+            className="mb-8 w-40 sm:w-64"
         />
-        <h1 className="text-3xl mb-8 text-center">
-            {macroEventName}
-        </h1>
-        { macroEventId && <EventList email={decodedCorreo} macroEventId={macroEventId}/> }
+        <h1 className="text-xl sm:text-3xl mb-8 text-center">{macroEventName}</h1>
+        {macroEventId && (
+            <div className="w-full max-w-4xl"> 
+            <EventList email={decodedCorreo} macroEventId={macroEventId} />
+            </div>
+        )}
         </main>
+
     )
 }
 

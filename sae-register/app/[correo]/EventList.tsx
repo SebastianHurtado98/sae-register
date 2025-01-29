@@ -361,27 +361,9 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   }
 
   return (
-<div className="p-4 w-full max-w-4xl mx-auto sm:px-6">
-  <h2 className="text-lg sm:text-xl mb-4 text-center">{guestName || 'Nombre no disponible'}</h2>
-  <h2 className="text-lg sm:text-xl mb-4 text-center">{email}</h2>
-  {
-  hasBeenReplaced ? (
-    <div>
-      <h2 className="text-lg sm:text-xl mb-4 text-center">
-        Este usuario ha sido reemplazado por {newGuestEmail}
-      </h2>
-      <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
-        Lista de eventos del reemplazo {replacementName}
-      </h4>
-    </div>
-  ) : (    
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-      <Button onClick={() => setShowReplaceForm(!showReplaceForm)} className="mb-4" style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}>
-        {showReplaceForm ? 'Cancelar reemplazo' : 'Registrar reemplazo'}
-      </Button>      
-      </div>
-  )
-  }
+<div className="p-4 w-full max-w-4xl mx-auto sm:px-6 text-center">
+  <h2 className="text-lg sm:text-xl mb-4">{guestName || 'Nombre no disponible'}</h2>
+  <h2 className="text-lg sm:text-xl mb-4">{email || 'Email no disponible'}</h2>
     <div>
       {showReplaceForm && (
         <form onSubmit={handleReplaceSubmit} className="mb-6">
@@ -408,10 +390,28 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       )}
 
     <div className="mb-6">
-      <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
-        Elige la reunión de tu preferencia:
+    <h4 className="text-sm sm:text-base mt-6 text-center">
+    A continuación, elige la reunión de tu preferencia. En caso desees enviar un reemplazo, haz clic en el siguiente botón:
       </h4>
     </div>
+    {
+  hasBeenReplaced ? (
+    <div>
+      <h2 className="text-lg sm:text-xl mb-4 text-center">
+        Este usuario ha sido reemplazado por {newGuestEmail}
+      </h2>
+      <h4 className="text-lg sm:text-xl font-semibold mt-6 text-center">
+        Lista de eventos del reemplazo {replacementName}
+      </h4>
+    </div>
+  ) : (    
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <Button onClick={() => setShowReplaceForm(!showReplaceForm)} className="mb-4" style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}>
+        {showReplaceForm ? 'Cancelar reemplazo' : 'Registrar reemplazo'}
+      </Button>      
+      </div>
+  )
+  }
     {events.length === 0 ? (
       <p className="text-center text-base sm:text-lg">No hay eventos disponibles.</p>
     ) : (
@@ -426,17 +426,17 @@ export default function EventList({ email, macroEventId }: { email: string, macr
             >
               <div className="flex flex-col space-y-2">
                 <span className="text-base sm:text-lg font-bold">{event.name}</span>
-                <div className="flex justify-between text-sm sm:text-base">
+                <div className="flex flex-col space-y-1 text-sm sm:text-base">
                   <span>
                     <strong>Modalidad:</strong> {event.event_type}
                   </span>
                   <span>
                     <strong>Lugar:</strong> {event.place}
                   </span>
-                </div>
-                <span>
+                  <span>
                   <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
                 </span>
+                </div>
                 <div
                   className="text-sm sm:text-base"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.html_description?.replace(/\\/g, '')) }}
@@ -468,17 +468,18 @@ export default function EventList({ email, macroEventId }: { email: string, macr
               <div className="flex flex-col space-y-2">
                 <p style={{ color: '#006F96' }}>Reunión virtual</p>
                 <span className="text-base sm:text-lg font-bold">{event.name}</span>
-                <div className="flex justify-between text-sm sm:text-base">
+                <div className="flex flex-col space-y-1 text-sm sm:text-base">
                   <span>
                     <strong>Modalidad:</strong> {event.event_type}
                   </span>
                   <span>
                     <strong>Lugar:</strong> {event.place}
                   </span>
-                </div>
-                <span>
+                  <span>
                   <strong>Fecha y Hora:</strong> {formatDateTime(event.date_hour)}
                 </span>
+                </div>
+
                 <div
                   className="text-sm sm:text-base"
                   dangerouslySetInnerHTML={{ __html: event.html_description ? DOMPurify.sanitize(event.html_description.replace(/\\/g, '')) : '' }}
