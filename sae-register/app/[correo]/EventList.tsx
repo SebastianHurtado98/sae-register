@@ -24,6 +24,7 @@ type Event = {
 export default function EventList({ email, macroEventId }: { email: string, macroEventId: number }) {
   const [events, setEvents] = useState<Event[]>([])
   const [guestName, setGuestName] = useState<string>('')
+  const [guestId, setGuestId] = useState<string>('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [zoomEmail, setZoomEmail] = useState<string>(email)
@@ -86,6 +87,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
           } else {
             setReplacementName(firstGuest.guest_name)
           }
+          setGuestId(firstGuest.guest_id)
 
           // Mapear los eventos con su estado registrado
           const mappedEvents = consolidatedEventGuestData.map((event) => ({
@@ -187,7 +189,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         );
       }
 
-      handleEmailConfirmation();
+      await handleEmailConfirmation();
       setIsModalOpen(false);
       setSelectedEvent(null);
     }
@@ -272,11 +274,51 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   }
 
   const handleEmailConfirmation = async () => {  
+    
+    const { data: eventData, error: eventError} = await supabase
+      .from('event')
+      .select(
+        `event_program`
+      )
+      .eq('id', selectedEvent?.id)
+      .single()    
+
+    if (eventError) {
+      console.error('Error fetching event:', eventError);
+      return;
+    }
+
+    const { data: guestData, error: guestError} = await supabase
+    .from('guest')
+      .select(
+        `
+        *,
+        company:company_id (razon_social),
+        executive:executive_id (
+        estimado,
+        apodo        
+      )
+      `
+    )
+    .eq('id', guestId)
+    .single()
+    console.log("guestData", guestData)  
+
+  if (guestError) {
+    console.error('Error fetching guest:', guestError);
+    return;
+  }
+    
     const emailToUse = hasBeenReplaced ? newGuestEmail : email
     const emailData = {
       to: emailToUse,
       template_id: "d-135fee68a2ac4cabad091a860be4331e",        
       first_name: hasBeenReplaced ? replacementName : guestName,
+      estimado: guestData.is_user ? guestData.executive.estimado : "Estimado (a)",
+      apodo: guestData.is_user ? guestData.executive.apodo : (hasBeenReplaced ? replacementName : guestName),
+      event_name: selectedEvent?.name,
+      event_place: selectedEvent?.place,
+      event_program: eventData.event_program,      
       register_link: `https://sae-register.vercel.app/${encodeURIComponent(emailToUse)}`
     }
 

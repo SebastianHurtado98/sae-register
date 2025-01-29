@@ -8,6 +8,11 @@ type EmailData = {
     template_id: string
     first_name: string
     register_link: string
+    estimado: string
+    apodo: string
+    event_name: string
+    event_place: string
+    event_program: string
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -15,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: "Method not allowed" })
     }
 
-    const { to, template_id, first_name, register_link }: EmailData = req.body
+    const { to, template_id, first_name, register_link, estimado, apodo, event_name, event_place, event_program }: EmailData = req.body
   
     const msg: sgMail.MailDataRequired = {
         personalizations: [
@@ -24,6 +29,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               dynamicTemplateData: {
                 first_name: first_name,
                 register_link: register_link,
+                estimado: estimado,
+                apodo: apodo,
+                event_name: event_name,
+                event_place: event_place,
+                event_program: event_program,
               },
             },
           ],
