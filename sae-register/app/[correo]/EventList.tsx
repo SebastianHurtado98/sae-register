@@ -343,53 +343,41 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   const handleReplaceSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { data: originalGuests, error: originalGuestError } = await supabase
+      console.log("hola")
+      const { data: allOriginalGuests, error: originalGuestError } = await supabase
         .from("guest")
-        .select("id, list_id")
+        .select(`
+          id, 
+          list: list_id (id, macro_event_id)
+          `)
         .eq("email", email)
 
       if (originalGuestError) throw originalGuestError
 
-      if (!originalGuests || originalGuests.length === 0) {
+      if (!allOriginalGuests || allOriginalGuests.length === 0) {
         throw new Error("No se pudo obtener list_id del guest original")
       }
 
-      const newGuestsPromises = originalGuests.map(async (originalGuest) => {
-      const { data: newGuest, error: newGuestError } = await supabase
+      // @ts-expect-error prisa
+      const originalGuests = allOriginalGuests.filter((guest) => guest.list.macro_event_id === macroEventId)
+      if (originalGuests.length === 0) {
+        throw new Error("No se encontraron guests para el macro evento especificado")
+      }
+
+      originalGuests.map(async (originalGuest) => {
+      const {error: newGuestError } = await supabase
         .from("guest")
         .insert({ 
           email: replacementEmail, 
           name: replacementName,
-          list_id: originalGuest.list_id, 
+          // @ts-expect-error prisa
+          list_id: originalGuest.list.id, 
           tipo_usuario: "Reemplazo",
           position: "Reemplazo",
         })
-        .select()
 
       if (newGuestError) throw newGuestError
-      return newGuest[0]
       })
-      
-      const newGuests = await Promise.all(newGuestsPromises)
-
-      const { data: originalEventGuests, error: originalEventGuestsError } = await supabase
-        .from("event_guest")
-        .select("event_id, guest_id")
-        .in("guest_id", originalGuests.map((g) => g.id))
-
-      if (originalEventGuestsError) throw originalEventGuestsError
-
-      const newEventGuests = originalEventGuests.flatMap((eg) => 
-        newGuests.map((ng) => ({
-          guest_id: ng.id,
-          event_id: eg.event_id,
-          registered: false,
-      })),
-    )
-
-      const { error: newEventGuestsError } = await supabase.from("event_guest").insert(newEventGuests)
-
-      if (newEventGuestsError) throw newEventGuestsError
 
       const { error: substituteError } = await supabase.from("substitutes").insert({
         macro_event_id: macroEventId,
