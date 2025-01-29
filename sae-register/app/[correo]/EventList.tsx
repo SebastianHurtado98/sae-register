@@ -314,10 +314,11 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       to: emailToUse,
       template_id: "d-135fee68a2ac4cabad091a860be4331e",        
       first_name: hasBeenReplaced ? replacementName : guestName,
-      estimado: hasBeenReplaced ? "Estimado (a)": guestData.executive.estimado,
-      apodo: hasBeenReplaced ? replacementName : guestData.executive.apodo,
+      estimado: hasBeenReplaced ? "Estimado (a)": (guestData.executive?.estimado || "Estimado (a)"),
+      apodo: hasBeenReplaced ? replacementName : (guestData.executive?.apodo || guestName),
       event_name: selectedEvent?.name,
       event_place: selectedEvent?.place,
+      event_date: selectedEvent?.date_hour,
       event_program: eventData.event_program,      
       register_link: `https://sae-register.vercel.app/${encodeURIComponent(emailToUse)}`
     }
