@@ -343,18 +343,18 @@ export default function EventList({ email, macroEventId }: { email: string, macr
   const handleReplaceSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { data: originalGuest, error: originalGuestError } = await supabase
+      const { data: originalGuests, error: originalGuestError } = await supabase
         .from("guest")
-        .select("list_id")
+        .select("id, list_id")
         .eq("email", email)
-        .single()
 
       if (originalGuestError) throw originalGuestError
 
-      if (!originalGuest || !originalGuest.list_id) {
-        throw new Error("No se pudo obtener el list_id del guest original")
+      if (!originalGuests || originalGuests.length === 0) {
+        throw new Error("No se pudo obtener list_id del guest original")
       }
 
+      const newGuestsPromises = originalGuests.map(async (originalGuest) => {
       const { data: newGuest, error: newGuestError } = await supabase
         .from("guest")
         .insert({ 
@@ -367,19 +367,25 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         .select()
 
       if (newGuestError) throw newGuestError
+      return newGuest[0]
+      })
+      
+      const newGuests = await Promise.all(newGuestsPromises)
 
       const { data: originalEventGuests, error: originalEventGuestsError } = await supabase
         .from("event_guest")
-        .select("event_id")
-        .eq("guest_id", events[0].guest_id)
+        .select("event_id, guest_id")
+        .in("guest_id", originalGuests.map((g) => g.id))
 
       if (originalEventGuestsError) throw originalEventGuestsError
 
-      const newEventGuests = originalEventGuests.map((eg) => ({
-        guest_id: newGuest[0].id,
-        event_id: eg.event_id,
-        registered: false,
-      }))
+      const newEventGuests = originalEventGuests.flatMap((eg) => 
+        newGuests.map((ng) => ({
+          guest_id: ng.id,
+          event_id: eg.event_id,
+          registered: false,
+      })),
+    )
 
       const { error: newEventGuestsError } = await supabase.from("event_guest").insert(newEventGuests)
 
