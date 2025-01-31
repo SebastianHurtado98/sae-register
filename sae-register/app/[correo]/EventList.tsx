@@ -65,7 +65,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
             zoom_webinar
             `
           )
-          .eq('register_open', true)
+          .eq('macro_event_id', macroEventId)
           .or(`executive_email.eq.${emailToUse},guest_email.eq.${emailToUse}`);
 
         console.log('consolidatedEventGuestData', consolidatedEventGuestData);
@@ -462,7 +462,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       <ul className="grid grid-cols-1 gap-6">
         {/* Reuniones presenciales */}
         {events
-          .filter((item) => item.register_open && item.event_type === 'Presencial')
+          .filter((item) => item.event_type === 'Presencial')
           .map((event) => (
             <li
               key={event.id}
@@ -493,7 +493,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                     event.registered ? 'cursor-not-allowed' : ''
                   }`}
                   onClick={() => handleRegister(event.id)}
-                  disabled={event.registered}
+                  disabled={event.registered || !event.register_open}
                 >
                   {event.registered ? 'Registrado' : 'Registrarse'}
                 </Button>
@@ -503,7 +503,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
 
         {/* Reuniones virtuales */}
         {events
-          .filter((item) => item.register_open && item.event_type === 'Virtual')
+          .filter((item) => item.event_type === 'Virtual')
           .map((event) => (
             <li
               key={event.id}
@@ -530,7 +530,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   />
               </div>
 
-              {!event.registered && (
+              {!event.registered && event.register_open &&(
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -570,10 +570,13 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                       e.preventDefault()
                       handleRegister(event.id)
                     }}
-                    disabled={event.registered}
+                    disabled={event.registered || !event.register_open}
                   >
                     {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
                   </Button>
+                  {!event.register_open &&(
+                    <p style={{ paddingTop: '20px' }}>Escribenos a este correo contactasae@apoyoconsultoria.com</p>
+                  )}
                   </div>
               </div>
             </li>
