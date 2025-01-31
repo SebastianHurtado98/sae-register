@@ -348,7 +348,12 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       const { data: allOriginalGuests, error: originalGuestError } = await supabase
         .from("guest")
         .select(`
-          id, 
+          id,
+          is_user,
+          executive: executive_id (
+            company: company_id (razon_social)
+          ),
+          company_razon_social,
           list: list_id (id, macro_event_id)
           `)
         .eq("email", email)
@@ -371,6 +376,8 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         .insert({ 
           email: replacementEmail, 
           name: replacementName,
+          // @ts-expect-error prisa
+          company_razon_social: originalGuest.is_user ? originalGuest.executive?.company?.razon_social : originalGuest.company_razon_social,
           // @ts-expect-error prisa
           list_id: originalGuest.list.id, 
           tipo_usuario: "Reemplazo",
