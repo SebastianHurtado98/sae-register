@@ -497,6 +497,9 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                 >
                   {event.registered ? 'Registrado' : 'Registrarse'}
                 </Button>
+                {!event.register_open &&(
+                    <p style={{ paddingTop: '20px' }}>Escribenos a este correo contactasae@apoyoconsultoria.com</p>
+                )}
               </div>
             </li>
           ))}
