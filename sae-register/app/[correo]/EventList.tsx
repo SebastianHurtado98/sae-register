@@ -487,6 +487,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   />
               </div>
               <div className="mt-4 text-center">
+              {event.register_open &&(
                 <Button
                   style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
                   className={`px-4 py-2 rounded-md ${
@@ -497,8 +498,12 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                 >
                   {event.registered ? 'Registrado' : 'Registrarse'}
                 </Button>
+              )}
                 {!event.register_open &&(
-                    <p style={{ paddingTop: '20px' }}>Escribenos a este correo contactasae@apoyoconsultoria.com</p>
+                    <div>
+                    <p style={{ paddingTop: '20px' }}>Muchas gracias por tu interés en el Encuentro mensual SAE. Lamentablemente, ya no tenemos cupos para esta reunión. </p>
+                    <p>Por favor, escríbenos a <a href="mailto:contactasae@apoyoconsultoria.com" style={{ color: 'blue', textDecoration: 'underline'}}>contactasae@apoyoconsultoria.com</a> para buscarte un espacio.</p>
+                  </div>
                 )}
               </div>
             </li>
@@ -566,6 +571,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   )}
 
                   <div className="text-center">
+                  {event.register_open &&(
                   <Button
                     style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
                     className="px-4 py-2 rounded-md"
@@ -577,8 +583,12 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   >
                     {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
                   </Button>
+                  )}
                   {!event.register_open &&(
-                    <p style={{ paddingTop: '20px' }}>Escribenos a este correo contactasae@apoyoconsultoria.com</p>
+                    <div>
+                      <p style={{ paddingTop: '20px' }}>Muchas gracias por tu interés en el Encuentro mensual SAE. Lamentablemente, ya no tenemos cupos para esta reunión. </p>
+                      <p>Por favor, escríbenos a <a href="mailto:contactasae@apoyoconsultoria.com" style={{ color: 'blue', textDecoration: 'underline'}}>contactasae@apoyoconsultoria.com</a> para buscarte un espacio.</p>
+                    </div>
                   )}
                   </div>
               </div>
