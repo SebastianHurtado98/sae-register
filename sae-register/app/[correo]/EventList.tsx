@@ -231,9 +231,9 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         },
         body: JSON.stringify({
             webinarId: selectedEvent?.zoom_webinar, 
-            firstName: guestName || 'Invitado',
+            firstName: hasBeenReplaced ? replacementName : guestName || 'Invitado',
             lastName: '-',
-            email: (useSameEmail ? zoomEmail : email),
+            email: hasBeenReplaced ? newGuestEmail : (useSameEmail ? zoomEmail : email), 
             org: 'Organizacion',
             token: token,
         }),
