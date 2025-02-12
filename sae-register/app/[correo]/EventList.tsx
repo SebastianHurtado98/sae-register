@@ -65,7 +65,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
             zoom_webinar
             `
           )
-          .eq('register_open', true)
+          .eq('macro_event_id', macroEventId)
           .or(`executive_email.eq.${emailToUse},guest_email.eq.${emailToUse}`);
 
         console.log('consolidatedEventGuestData', consolidatedEventGuestData);
@@ -231,9 +231,9 @@ export default function EventList({ email, macroEventId }: { email: string, macr
         },
         body: JSON.stringify({
             webinarId: selectedEvent?.zoom_webinar, 
-            firstName: guestName || 'Invitado',
+            firstName: hasBeenReplaced ? replacementName : guestName || 'Invitado',
             lastName: '-',
-            email: (useSameEmail ? zoomEmail : email),
+            email: hasBeenReplaced ? newGuestEmail : (useSameEmail ? zoomEmail : email), 
             org: 'Organizacion',
             token: token,
         }),
@@ -462,7 +462,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
       <ul className="grid grid-cols-1 gap-6">
         {/* Reuniones presenciales */}
         {events
-          .filter((item) => item.register_open && item.event_type === 'Presencial')
+          .filter((item) => item.event_type === 'Presencial')
           .map((event) => (
             <li
               key={event.id}
@@ -487,23 +487,31 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   />
               </div>
               <div className="mt-4 text-center">
+              {event.register_open &&(
                 <Button
                   style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
                   className={`px-4 py-2 rounded-md ${
                     event.registered ? 'cursor-not-allowed' : ''
                   }`}
                   onClick={() => handleRegister(event.id)}
-                  disabled={event.registered}
+                  disabled={event.registered || !event.register_open}
                 >
                   {event.registered ? 'Registrado' : 'Registrarse'}
                 </Button>
+              )}
+                {!event.register_open &&(
+                    <div>
+                    <p style={{ paddingTop: '20px' }}>Muchas gracias por tu interés en el Encuentro mensual SAE. Lamentablemente, ya no tenemos cupos para esta reunión. </p>
+                    <p>Por favor, escríbenos a <a href="mailto:contactasae@apoyoconsultoria.com" style={{ color: 'blue', textDecoration: 'underline'}}>contactasae@apoyoconsultoria.com</a> para buscarte un espacio.</p>
+                  </div>
+                )}
               </div>
             </li>
           ))}
 
         {/* Reuniones virtuales */}
         {events
-          .filter((item) => item.register_open && item.event_type === 'Virtual')
+          .filter((item) => item.event_type === 'Virtual')
           .map((event) => (
             <li
               key={event.id}
@@ -530,7 +538,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   />
               </div>
 
-              {!event.registered && (
+              {!event.registered && event.register_open &&(
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -563,6 +571,7 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                   )}
 
                   <div className="text-center">
+                  {event.register_open &&(
                   <Button
                     style={{ backgroundColor: '#006F96', color: '#FFFFFF' }}
                     className="px-4 py-2 rounded-md"
@@ -570,10 +579,17 @@ export default function EventList({ email, macroEventId }: { email: string, macr
                       e.preventDefault()
                       handleRegister(event.id)
                     }}
-                    disabled={event.registered}
+                    disabled={event.registered || !event.register_open}
                   >
                     {event.registered ? 'Registrado' : 'Registrarse en Zoom'}
                   </Button>
+                  )}
+                  {!event.register_open &&(
+                    <div>
+                      <p style={{ paddingTop: '20px' }}>Muchas gracias por tu interés en el Encuentro mensual SAE. Lamentablemente, ya no tenemos cupos para esta reunión. </p>
+                      <p>Por favor, escríbenos a <a href="mailto:contactasae@apoyoconsultoria.com" style={{ color: 'blue', textDecoration: 'underline'}}>contactasae@apoyoconsultoria.com</a> para buscarte un espacio.</p>
+                    </div>
+                  )}
                   </div>
               </div>
             </li>
