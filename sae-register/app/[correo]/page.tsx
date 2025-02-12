@@ -27,8 +27,7 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
         const { data, error } = await supabase
         .from('macro_event')
         .select('id, name')
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('id', 5)
 
         const currentMonth = new Date().toLocaleString('es-ES', { month: 'long', timeZone: 'UTC' })
         const formattedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)
