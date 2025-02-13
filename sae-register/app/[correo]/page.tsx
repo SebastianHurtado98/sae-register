@@ -24,10 +24,21 @@ export default function InvitacionesPage({ params }: { params: Promise<{ correo:
     }, [])
 
     async function fetchMacroEvent() {
+        const { data: dataActiveMacro, error: errorActiveMacro } = await supabase
+        .from('active_macro')
+        .select('*')
+        .limit(1)
+        .single();
+
+        if (errorActiveMacro) {
+            console.error('Error fetching macro_events:', errorActiveMacro)
+            return
+        }
+
         const { data, error } = await supabase
         .from('macro_event')
         .select('id, name')
-        .eq('id', 5)
+        .eq('id', dataActiveMacro.macro_event_id)
 
         const currentMonth = new Date().toLocaleString('es-ES', { month: 'long', timeZone: 'UTC' })
         const formattedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)
